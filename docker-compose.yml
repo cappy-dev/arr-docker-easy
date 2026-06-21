@@ -1,0 +1,109 @@
+version: "3.8"
+
+# arr-docker-easy: One-command Docker setup for the *arr stack
+# Sonarr, Radarr, Prowlarr, Jellyfin, Jellyseerr + shared volumes
+#
+# Quick start:
+#   cp .env.example .env    # edit passwords & ports
+#   docker compose up -d
+#
+# All data lives in ./data/ by default. Change DATA_ROOT in .env
+# to put it somewhere else (like /srv/arr-stack).
+
+services:
+  # ── Indexer ──────────────────────────────────────
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    ports:
+      - "${PROWLARR_PORT:-9696}:9696"
+    volumes:
+      - ${DATA_ROOT:-./data}/prowlarr:/config
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Chicago}
+
+  # ── TV Shows ──────────────────────────────────────
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    ports:
+      - "${SONARR_PORT:-8989}:8989"
+    volumes:
+      - ${DATA_ROOT:-./data}/sonarr:/config
+      - ${MEDIA_ROOT:-./media}:/media
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Chicago}
+    depends_on:
+      - prowlarr
+
+  # ── Movies ────────────────────────────────────────
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    ports:
+      - "${RADARR_PORT:-7878}:7878"
+    volumes:
+      - ${DATA_ROOT:-./data}/radarr:/config
+      - ${MEDIA_ROOT:-./media}:/media
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Chicago}
+    depends_on:
+      - prowlarr
+
+  # ── Media Server ─────────────────────────────────
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    ports:
+      - "${JELLYFIN_PORT:-8096}:8096"
+      - "${JELLYFIN_DISCOVER:-7359}:7359/udp"
+    volumes:
+      - ${DATA_ROOT:-./data}/jellyfin:/config
+      - ${MEDIA_ROOT:-./media}:/media
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Chicago}
+
+  # ── Request Manager ──────────────────────────────
+  jellyseerr:
+    image: lscr.io/linuxserver/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    ports:
+      - "${JELLYSEERR_PORT:-5055}:5055"
+    volumes:
+      - ${DATA_ROOT:-./data}/jellyseerr:/config
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Chicago}
+    depends_on:
+      - jellyfin
+
+  # ── Download Client (optional) ───────────────────
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    restart: unless-stopped
+    ports:
+      - "${TRANSMISSION_PORT:-9091}:9091"
+      - "${TRANSMISSION_PEER:-51413}:51413"
+      - "${TRANSMISSION_PEER:-51413}:51413/udp"
+    volumes:
+      - ${DATA_ROOT:-./data}/transmission:/config
+      - ${MEDIA_ROOT:-./media}/downloads:/downloads
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-America/Chicago}
