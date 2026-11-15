@@ -128,4 +128,4 @@ Jellyfin supports Intel Quick Sync, NVIDIA NVENC, and AMD AMF. To enable it:
 
 ## License
 
-MIT. Use it however you want.
+Licensed under the GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
